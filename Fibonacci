@@ -28,8 +28,18 @@ PROCESSOR 16F887
 
 // config statements should precede project file includes.
 #include <xc.inc>
-psect barfunc,local,class=CODE,delta=2   
-  
+psect   code,global,class=CODE,delta=2
+psect   resetVec,global,class=CODE,delta=2
+global  _main, start_initialization ; Required symbols
+
+; Reset Vector
+psect   resetVec
+    goto    start_initialization
+
+; Main program
+psect   code
+_main:
+start_initialization:  
 ; Variables
 FIB0      equ 0x30    ; Primer numero de Fibonacci
 FIB1      equ FIB0+1    ; Segundo numero de Fibonacci
@@ -37,14 +47,13 @@ SUMA      equ FIB1+1  ; Almacena la suma
 COUNTER   equ SUMA+1    ; Contador
 CONTROL   equ COUNTER+1    ; Palabra de control desde PORTA
 REFCONTROL equ CONTROL+1   ; Numero de referencia (14)
-DELAYF    equ REFCONTROL+1    ; Contador para delay
 	
 org	0
-goto	main
+goto main
 org	5
 
 main:
-    banksel PORTA
+   banksel PORTA
     clrf    PORTA      ; Inicializa PORTA
     banksel ANSEL
     clrf    ANSEL      ; Configura entradas digitales
@@ -113,13 +122,5 @@ CALCULO_FIBONACCI:
 SALIDA_LCD:
     movf    FIB0,W
     movwf   PORTB
-    movlw   0xDD
-    movwf   DELAYF
-    goto DELAY
-
-DELAY:
-    decfsz  DELAYF, F
-    goto    DELAY
     goto    INICIO
-
-    end
+end
