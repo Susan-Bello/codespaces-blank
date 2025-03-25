@@ -4,6 +4,7 @@
 ;SEMESTRE 2025-II
 ;PROFESOR: JORGE RICARDO GERSENOWIES ROSAS
 ;AUTOR: LEONOR SUSAN BELLO DELGADO
+;ALUMNOS: LEONOR SUSAN BELLO DELGADO, OMAR IVAN RAMIREZ LORANCA, SANTIAGO AHUMADA SIERRA.
 
 PROCESSOR 16F887
 ; PIC16F887 Configuration Bit Settings
@@ -47,7 +48,8 @@ SUMA      equ FIB1+1  ; Almacena la suma
 COUNTER   equ SUMA+1    ; Contador
 CONTROL   equ COUNTER+1    ; Palabra de control desde PORTA
 REFCONTROL equ CONTROL+1   ; Numero de referencia (14)
-REFCONTROL0 equ REFCONTROL+1   ; Numero de referencia (14)
+REFCONTROL0 equ REFCONTROL+1   ; Numero de referencia (0)
+FIB14 equ REFCONTROL0+1; CALCULO DE LOS PRIMEROS 14 NUMEROS DE LA SERIE
 
 org	0
 goto main
@@ -70,6 +72,26 @@ main:
     movwf   TRISB      ; PORTB como salida
     banksel PORTB
     
+INITCALC14:
+    clrf    FIB0       ; FIB0 = 0
+    movlw   0x01
+    movwf   FIB1       ; FIB1 = 1
+    clrf    SUMA       ; SUMA = 0
+    movlw   0x0E
+    movwf   FIB14
+    
+CALCULO14:
+    movf    FIB1, W    ; FIB0 = FIB1
+    movwf   FIB0
+    movf    SUMA, W    ; FIB1 = SUMA
+    movwf   FIB1
+    movf    FIB0, W    ; SUMA = FIB0 + FIB1
+    addwf   FIB1, W
+    movwf   SUMA
+    movf    FIB1,W
+    movwf   PORTB      ; Muestra resultado en PORTB
+    decfsz  FIB14,F ; Decrementa contador, salta si es cero
+    goto    CALCULO14
     
 INICIO:
     clrf    FIB0       ; FIB0 = 0
@@ -80,6 +102,8 @@ INICIO:
     clrf    CONTROL
     movlw   0x0E       ; Numero maximo a calcular (14=233)
     movwf   REFCONTROL
+    clrf    PORTB
+    
 
 MAIN_LOOP:
     movf    PORTA, W   ; Lee palabra de control de PORTA
@@ -120,7 +144,6 @@ CALCULO_FIBONACCI:
     movf    FIB0, W    ; SUMA = FIB0 + FIB1
     addwf   FIB1, W
     movwf   SUMA
-    //movwf   PORTB      ; Muestra resultado en PORTB
     decfsz  COUNTER,F ; Decrementa contador, salta si es cero
     goto    CALCULO_FIBONACCI
     goto    SALIDA_LCD
