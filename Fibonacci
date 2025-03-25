@@ -47,10 +47,11 @@ SUMA      equ FIB1+1  ; Almacena la suma
 COUNTER   equ SUMA+1    ; Contador
 CONTROL   equ COUNTER+1    ; Palabra de control desde PORTA
 REFCONTROL equ CONTROL+1   ; Numero de referencia (14)
-	
+REFCONTROL0 equ REFCONTROL+1   ; Numero de referencia (14)
+
 org	0
 goto main
-org	5
+org	38
 
 main:
    banksel PORTA
@@ -67,27 +68,32 @@ main:
     banksel TRISB
     movlw   0x00
     movwf   TRISB      ; PORTB como salida
+    banksel PORTB
+    
     
 INICIO:
     clrf    FIB0       ; FIB0 = 0
-    movlw   1
+    movlw   0x01
     movwf   FIB1       ; FIB1 = 1
     clrf    SUMA       ; SUMA = 0
     clrf    COUNTER    ; Contador = 0
+    clrf    CONTROL
     movlw   0x0E       ; Numero maximo a calcular (14=233)
     movwf   REFCONTROL
 
 MAIN_LOOP:
     movf    PORTA, W   ; Lee palabra de control de PORTA
-    andlw   0x0F       ; Mascara para 4 bits bajos
+    //andlw   0x0F      ; Mascara para 4 bits bajos
     movwf   CONTROL    ; Guarda palabra de control
     movf    CONTROL,W
-    subwf   REFCONTROL,W
-    btfss   STATUS, 0  ; Salta si CONTROL <= 14
+    subwf   REFCONTROL,W;Compara la palabra de control con la referencia
+    btfss  STATUS, 0  ; Salta si CONTROL <= 14
     goto    INICIO
-    movlw   1
-    subwf   CONTROL,W  ; Resta 1 a CONTROL
-    btfss   STATUS, 0  ; Salta si CONTROL >= 1
+    movlw   0x01
+    movwf   REFCONTROL0
+    movf CONTROL,W
+    subwf   REFCONTROL0,W  ; Resta 1 a CONTROL
+    btfsc   STATUS, 0  ; Salta si CONTROL >= 1
     goto    INICIO
     goto    COMP_CON_COUN
 
@@ -100,8 +106,8 @@ COMP_CON_COUN:
 
 INC_COUNTER:
     incf    COUNTER,F  ; Incrementa contador
-    movf    CONTROL,W
-    xorwf   COUNTER, W
+    movf    COUNTER,W
+    xorwf   CONTROL, W
     btfss   STATUS,2  ; Salta si COUNTER = CONTROL
     goto    INC_COUNTER
     goto    CALCULO_FIBONACCI
@@ -114,13 +120,13 @@ CALCULO_FIBONACCI:
     movf    FIB0, W    ; SUMA = FIB0 + FIB1
     addwf   FIB1, W
     movwf   SUMA
-    movwf   PORTB      ; Muestra resultado en PORTB
-    decfsz  COUNTER,F ; Decrementa contador
+    //movwf   PORTB      ; Muestra resultado en PORTB
+    decfsz  COUNTER,F ; Decrementa contador, salta si es cero
     goto    CALCULO_FIBONACCI
     goto    SALIDA_LCD
 
 SALIDA_LCD:
-    movf    FIB0,W
+    movf    FIB1,W
     movwf   PORTB
     goto    INICIO
 end
