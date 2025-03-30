@@ -1,4 +1,4 @@
-Fibonacci
+Fibonacci en lenguaje ensamblador
 Programa para calcular los primeros 14 números de la serie de Fibonacci, utilizando un PIC16F887. 
 
 Los 14 números se calculan primero de forma automática y posteriormente se puede acceder a cualquiera de estos por medio de una palabra de control ingresada por el puerto A.
