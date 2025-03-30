@@ -50,37 +50,55 @@ CONTROL   equ COUNTER+1    ; Palabra de control desde PORTA
 REFCONTROL equ CONTROL+1   ; Numero de referencia (14)
 REFCONTROL0 equ REFCONTROL+1   ; Numero de referencia (0)
 FIB14 equ REFCONTROL0+1; CALCULO DE LOS PRIMEROS 14 NUMEROS DE LA SERIE
+LED equ FIB14+1
+NUM equ LED+1
+CDELAY equ NUM+1 
+UP equ CDELAY+1
+U equ UP+1
+D equ U+1
+DP equ D+1 
+C equ DP+1
+PC equ C+1
+TEMP1 equ PC+1
+TEMP2 equ TEMP1+1
 
 org	0
 goto main
-org	38
+org	50
 
 main:
-   banksel PORTA
+    banksel PORTB
+    clrf    STATUS
     clrf    PORTA      ; Inicializa PORTA
-    banksel ANSEL
-    clrf    ANSEL      ; Configura entradas digitales
+    clrf    PORTC	; Inicializa PORTC
+    clrf    PORTD
     banksel TRISA     
-    movlw   0x0F
-    movwf   TRISA      ; 4 bits bajos como entrada
-    banksel PORTB
-    clrf    PORTB      ; Inicializa PORTB
-    banksel ANSELH
-    clrf    ANSELH     ; Configura entradas digitales
-    banksel TRISB
     movlw   0x00
-    movwf   TRISB      ; PORTB como salida
-    banksel PORTB
-    
-INITCALC14:
+    movwf   TRISC	; PORTC como salida	
+    movwf   TRISD	; PORTC como salida	
+    movlw   0x0F
+    movwf   TRISA	; 4 bits bajos como entrada
+    banksel ANSELH
+    clrf    ANSELH	; Configura entradas digitales
+    clrf    ANSEL      ; Configura entradas digitales    
+    banksel PORTA
+INICIO14:
     clrf    FIB0       ; FIB0 = 0
     movlw   0x01
     movwf   FIB1       ; FIB1 = 1
     clrf    SUMA       ; SUMA = 0
-    movlw   0x0E
-    movwf   FIB14
+    clrf    CONTROL
+    clrf    COUNTER
+    movlw   0x0E       ; Numero maximo a calcular (14=233)
+    movwf   COUNTER
+    movlw   0x05
+    movwf   TEMP1
+    movlw   0x05
+    movwf   TEMP2
+    movwf   CONTROL
+    goto    CALCULO_FIBONACCI14
     
-CALCULO14:
+CALCULO_FIBONACCI14:
     movf    FIB1, W    ; FIB0 = FIB1
     movwf   FIB0
     movf    SUMA, W    ; FIB1 = SUMA
@@ -89,37 +107,74 @@ CALCULO14:
     addwf   FIB1, W
     movwf   SUMA
     movf    FIB1,W
-    movwf   PORTB      ; Muestra resultado en PORTB
-    decfsz  FIB14,F ; Decrementa contador, salta si es cero
-    goto    CALCULO14
+    movwf   FIB14
+    call    TEMP
+    call    TEMP_1
+    decfsz  COUNTER,F ; Decrementa contador, salta si es cero
+    goto    CALCULO_FIBONACCI14
+    goto    INICIO
+    
+TEMP:
+    movf    FIB1,W
+    movwf   FIB14
+    call CENTENAS
+    movf    FIB1,W
+    movwf   FIB14
+    call CENTENAS
+    movf    FIB1,W
+    movwf   FIB14
+    call CENTENAS
+    movf    FIB1,W
+    movwf   FIB14
+    call CENTENAS
+    decfsz TEMP1
+    goto TEMP
+    return
+    
+TEMP_1:
+    movf    FIB1,W
+    movwf   FIB14
+    call CENTENAS
+    movf    FIB1,W
+    movwf   FIB14
+    call CENTENAS
+    movf    FIB1,W
+    movwf   FIB14
+    call CENTENAS
+    movf    FIB1,W
+    movwf   FIB14
+    call CENTENAS
+    decfsz TEMP2
+    goto TEMP_1
+    return
     
 INICIO:
     clrf    FIB0       ; FIB0 = 0
     movlw   0x01
     movwf   FIB1       ; FIB1 = 1
     clrf    SUMA       ; SUMA = 0
-    clrf    COUNTER    ; Contador = 0
     clrf    CONTROL
+    clrf    COUNTER
     movlw   0x0E       ; Numero maximo a calcular (14=233)
     movwf   REFCONTROL
-    clrf    PORTB
-    
 
-MAIN_LOOP:
+CONTROL_LOOP:
     movf    PORTA, W   ; Lee palabra de control de PORTA
-    //andlw   0x0F      ; Mascara para 4 bits bajos
     movwf   CONTROL    ; Guarda palabra de control
     movf    CONTROL,W
     subwf   REFCONTROL,W;Compara la palabra de control con la referencia
     btfss  STATUS, 0  ; Salta si CONTROL <= 14
-    goto    INICIO
-    movlw   0x01
+    goto    INICIO14
+    movlw   0x00
     movwf   REFCONTROL0
-    movf CONTROL,W
+    movf    CONTROL,W
     subwf   REFCONTROL0,W  ; Resta 1 a CONTROL
     btfsc   STATUS, 0  ; Salta si CONTROL >= 1
-    goto    INICIO
+    goto    INICIO14
     goto    COMP_CON_COUN
+    movlw   0xA0
+    movwf   CDELAY
+    
 
 COMP_CON_COUN:
     movf    CONTROL,W
@@ -135,7 +190,7 @@ INC_COUNTER:
     btfss   STATUS,2  ; Salta si COUNTER = CONTROL
     goto    INC_COUNTER
     goto    CALCULO_FIBONACCI
-
+    
 CALCULO_FIBONACCI:
     movf    FIB1, W    ; FIB0 = FIB1
     movwf   FIB0
@@ -144,12 +199,508 @@ CALCULO_FIBONACCI:
     movf    FIB0, W    ; SUMA = FIB0 + FIB1
     addwf   FIB1, W
     movwf   SUMA
+    movf    FIB1,W
+    movwf   FIB14
     decfsz  COUNTER,F ; Decrementa contador, salta si es cero
     goto    CALCULO_FIBONACCI
-    goto    SALIDA_LCD
-
-SALIDA_LCD:
-    movf    FIB1,W
-    movwf   PORTB
+    call    CENTENAS
     goto    INICIO
+
+    
+UNIDADES:
+    movlw 0x09
+    movwf LED
+    movf FIB14,W
+    subwf LED,W
+    btfss STATUS,0
+    goto DECENAS
+    movlw 0x01
+    movwf UP
+    call CEROU
+    call MOSTRARU
+    return
+    
+DECENAS:
+    movlw 0x63
+    movwf LED
+    movf FIB14,W
+    subwf LED,W
+    btfss STATUS,0
+    goto CENTENAS
+    movlw 0x09
+    movwf LED
+    movf FIB14,W
+    subwf LED,W
+    btfsc STATUS,0
+    goto UNIDADES
+    movlw 0x02
+    movwf DP
+    call CEROD
+    call MOSTRARD
+    return    
+    
+CENTENAS:
+    movlw 0xE9
+    movwf LED
+    movf FIB14,W
+    subwf LED,W
+    btfss STATUS,0
+    goto INICIO
+    movlw 0x63
+    movwf LED
+    movf FIB14,W
+    subwf LED,W
+    btfsc STATUS,0
+    goto DECENAS
+    movlw 0x04
+    movwf PC
+    call UNOC
+    return    
+
+ 
+MOSTRARU:
+   movf UP,W
+   movwf PORTD
+   movf U,W
+   movwf PORTC
+   return
+   
+MOSTRARD:
+   movf DP,W
+   movwf PORTD
+   movf D,W
+   movwf PORTC
+   decfsz LED
+   return
+   
+MOSTRARC:
+   movf PC,W
+   movwf PORTD
+   movf C,W
+   movwf PORTC
+   return
+   
+CEROU: 
+    movlw 0x00
+    movwf NUM
+    movf FIB14,W
+    xorwf NUM,W
+    btfss STATUS,2
+    goto UNOU
+    movlw 0x40
+    movwf U
+    movlw 0x01
+    movwf UP
+    call MOSTRARU
+    return
+ 
+UNOU:
+    movlw 0x01
+    movwf NUM
+    movf FIB14,W
+    xorwf NUM,W
+    btfss STATUS,2
+    goto DOSU
+    movlw 0x79
+    movwf U
+    call MOSTRARU
+    return
+    
+DOSU:
+    movlw 0x02
+    movwf NUM
+    movf FIB14,W
+    xorwf NUM,W
+    btfss STATUS,2
+    goto TRESU
+    movlw 0x24
+    movwf U
+    call MOSTRARU
+    return
+    
+TRESU:
+    movlw 0x03
+    movwf NUM
+    movf FIB14,W
+    xorwf NUM,W
+    btfss STATUS,2
+    goto CUATROU
+    movlw 0x30
+    movwf U
+    call MOSTRARU
+    return
+
+CUATROU:
+    movlw 0x04
+    movwf NUM
+    movf FIB14,W
+    xorwf NUM,W
+    btfss STATUS,2
+    goto CINCOU
+    movlw 0x19
+    movwf U
+    call MOSTRARU
+    return
+    
+CINCOU: 
+    movlw 0x05
+    movwf NUM
+    movf FIB14,W
+    xorwf NUM,W
+    btfss STATUS,2
+    goto SEISU
+    movlw 0x12
+    movwf U
+    call MOSTRARU
+    return
+    
+SEISU: 
+    movlw 0x06
+    movwf NUM
+    movf FIB14,W
+    xorwf NUM,W
+    btfss STATUS,2
+    goto SIETEU
+    movlw 0x02
+    movwf U
+    call MOSTRARU
+    return
+    
+SIETEU: 
+    movlw 0x07
+    movwf NUM
+    movf FIB14,W
+    xorwf NUM,W
+    btfss STATUS,2
+    goto OCHOU
+    movlw 0x78
+    movwf U
+    call MOSTRARU
+    return
+    
+OCHOU:
+    movlw 0x08
+    movwf NUM
+    movf FIB14,W
+    xorwf NUM,W
+    btfss STATUS,2
+    goto NUEVEU
+    movlw 0x00
+    movwf U
+    call MOSTRARU
+    return
+    
+NUEVEU:
+    movlw 0x09
+    movwf NUM
+    movf FIB14,W
+    xorwf NUM,W
+    btfss STATUS,2
+    goto INICIO
+    movlw 0x10
+    movwf U
+    call MOSTRARU
+    return
+
+CEROD: 
+    movlw 0x02
+    movwf DP
+    movlw 0x09
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfss STATUS,0
+    goto UNOD
+    movlw 0x40
+    movwf D
+    call MOSTRARD
+    goto UNIDADES
+    return
+ 
+UNOD:
+    movlw 0x13
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfss STATUS,0
+    goto DOSD
+    movlw 0x09
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfsc STATUS,0
+    goto UNIDADES
+    movlw 0x79
+    movwf D
+    call MOSTRARD
+    movlw 0x0A
+    movwf NUM
+    movf  NUM,w
+    subwf FIB14,W
+    movwf FIB14
+    btfsc STATUS,0
+    goto UNIDADES
+    goto CONTROL_LOOP
+    return
+    
+DOSD:
+    movlw 0x1D
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfss STATUS,0
+    goto TRESD
+    movlw 0x14
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfsc STATUS,0
+    goto UNOD
+    movlw 0x24
+    movwf D
+    call MOSTRARD
+    movlw 0x14
+    movwf NUM
+    movf  NUM,w
+    subwf FIB14,W
+    movwf FIB14
+    btfsc STATUS,0
+    goto UNIDADES
+    goto CONTROL_LOOP
+    return
+    
+TRESD:
+    movlw 0x27
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfss STATUS,0
+    goto CUATROD
+    movlw 0x1D
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfsc STATUS,0
+    goto DOSD
+    movlw 0x30
+    movwf D
+    call MOSTRARD
+    movlw 0x1E
+    movwf NUM
+    movf  NUM,W
+    subwf FIB14,W
+    movwf FIB14
+    btfsc STATUS,0
+    goto UNIDADES
+    goto CONTROL_LOOP
+    return
+
+CUATROD:
+    movlw 0x31
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfss STATUS,0
+    goto CINCOD
+    movlw 0x27
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfsc STATUS,0
+    goto TRESD
+    movlw 0x19
+    movwf D
+    call MOSTRARD
+    movlw 0x28
+    movwf NUM
+    movf  NUM,w
+    subwf FIB14,W
+    movwf FIB14
+    btfsc STATUS,0
+    goto UNIDADES
+    goto CONTROL_LOOP
+    return
+    
+CINCOD: 
+    movlw 0x3B
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfss STATUS,0
+    goto SEISD
+    movlw 0x31
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfsc STATUS,0
+    goto CUATROD
+    movlw 0x12
+    movwf D
+    call MOSTRARD
+    movlw 0x32
+    movwf NUM
+    movf  NUM,W
+    subwf FIB14,W
+    movwf FIB14
+    btfsc STATUS,0
+    goto UNIDADES
+    goto CONTROL_LOOP
+    return
+    
+SEISD: 
+    movlw 0x45
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfss STATUS,0
+    goto SIETED
+    movlw 0x3B
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfsc STATUS,0
+    goto CINCOD
+    movlw 0x02
+    movwf D
+    call MOSTRARD
+    movlw 0x3C
+    movwf NUM
+    movf  NUM,w
+    subwf FIB14,W
+    movwf FIB14
+    btfsc STATUS,0
+    goto UNIDADES
+    goto CONTROL_LOOP
+    return
+    
+SIETED: 
+    movlw 0x4F
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfss STATUS,0
+    goto OCHOD
+    movlw 0x45
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfsc STATUS,0
+    goto SEISD
+    movlw 0x78
+    movwf D
+    call MOSTRARD
+    movlw 0x46
+    movwf NUM
+    movf  NUM,W
+    subwf FIB14,W
+    movwf FIB14
+    btfsc STATUS,0
+    goto UNIDADES
+    goto CONTROL_LOOP
+    return
+    
+OCHOD:
+    movlw 0x59
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfss STATUS,0
+    goto NUEVED
+    movlw 0x4F
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfsc STATUS,0
+    goto SIETED
+    movlw 0x00
+    movwf D
+    call MOSTRARD
+    movlw 0x50
+    movwf NUM
+    movf  NUM,w
+    subwf FIB14,W
+    movwf FIB14
+    btfsc STATUS,0
+    goto UNIDADES
+    goto CONTROL_LOOP
+    return
+    
+NUEVED:
+    movlw 0x63
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfss STATUS,0
+    goto CENTENAS
+    movlw 0x59
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfsc STATUS,0
+    goto OCHOD
+    movlw 0x10
+    movwf D
+    call MOSTRARD
+    movlw 0x5A
+    movwf NUM
+    movf  NUM,W
+    subwf FIB14,W
+    movwf FIB14
+    btfsc STATUS,0
+    goto UNIDADES
+    goto CONTROL_LOOP
+    return
+    
+UNOC:
+    movlw 0xC7
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfss STATUS,0
+    goto DOSC
+    movlw 0x63
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfsc STATUS,0
+    goto  DECENAS
+    movlw 0x79
+    movwf C
+    call MOSTRARC
+    movlw 0x64
+    movwf NUM
+    movf  NUM,W
+    subwf FIB14,W
+    movwf FIB14
+    btfsc STATUS,0
+    goto CEROD
+    goto CONTROL_LOOP
+    return
+    
+DOSC:
+    movlw 0xE9
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfss STATUS,0
+    goto CONTROL
+    movlw 0xC7
+    movwf NUM
+    movf FIB14,W
+    subwf NUM,W
+    btfsc STATUS,0
+    goto UNOC
+    movlw 0x24
+    movwf C
+    call MOSTRARC
+    movlw 0xC8
+    movwf NUM
+    movf  NUM,w
+    subwf FIB14,W
+    movwf FIB14
+    btfsc STATUS,0
+    goto CEROD
+    goto CONTROL_LOOP
+    return   
+
 end
