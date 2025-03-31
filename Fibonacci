@@ -70,37 +70,36 @@ org	50
 main:
     banksel PORTB
     clrf    STATUS
-    clrf    PORTA     ; Inicializa PORTA
-    clrf    PORTC     ; Inicializa PORTC
-    clrf    PORTD     ; Inicializa PORTD
+    clrf    PORTA      ; Inicializa PORTA
+    clrf    PORTC	; Inicializa PORTC
+    clrf    PORTD
     banksel TRISA     
     movlw   0x00
     movwf   TRISC	; PORTC como salida	
-    movwf   TRISD	; PORTD como salida	
+    movwf   TRISD	; PORTC como salida	
     movlw   0x0F
     movwf   TRISA	; 4 bits bajos como entrada
     banksel ANSELH
     clrf    ANSELH	; Configura entradas digitales
-    clrf    ANSEL   ; Configura entradas digitales    
+    clrf    ANSEL      ; Configura entradas digitales    
     banksel PORTA
-
+    
 INICIO14:
     clrf    FIB0       ; FIB0 = 0
     movlw   0x01
     movwf   FIB1       ; FIB1 = 1
     clrf    SUMA       ; SUMA = 0
-    clrf    CONTROL    ; CONTROL=0
-    clrf    COUNTER    ; COUNTER=0
+    clrf    CONTROL
+    clrf    COUNTER
     movlw   0x0E       ; Numero maximo a calcular (14=233)
     movwf   COUNTER
     movlw   0x05
-    movwf   TEMP1      
+    movwf   TEMP1
     movlw   0x05
     movwf   TEMP2
     movwf   CONTROL
     goto    CALCULO_FIBONACCI14
-
-;Calculo automatico de los primeros 14 números de la serie
+    
 CALCULO_FIBONACCI14:
     movf    FIB1, W    ; FIB0 = FIB1
     movwf   FIB0
@@ -166,17 +165,36 @@ CONTROL_LOOP:
     movwf   CONTROL    ; Guarda palabra de control
     movf    CONTROL,W
     subwf   REFCONTROL,W;Compara la palabra de control con la referencia
-    btfss   STATUS, 0  ; Salta si CONTROL <= 14
-    goto    INICIO14  ;Si la palabra es mayor a 14 regresa al calculo automatico
+    btfss  STATUS, 0  ; Salta si CONTROL <= 14
+    goto    ERRORF
     movlw   0x00
     movwf   REFCONTROL0
     movf    CONTROL,W
     subwf   REFCONTROL0,W  ; Resta 1 a CONTROL
     btfsc   STATUS, 0  ; Salta si CONTROL >= 1
-    goto    INICIO14   ; Si control =0 regresa al calculo automatico
+    goto    ERRORF
     goto    COMP_CON_COUN
     
-
+ERRORF:
+    movlw 0x01
+    movwf PORTD
+    movlw 0x2F
+    movwf PORTC
+    movlw 0x01
+    movwf PORTD
+    movlw 0x2F
+    movwf PORTC
+    movlw 0x02
+    movwf PORTD
+    movlw 0x2F
+    movwf PORTC
+    movlw 0x04
+    movwf PORTD
+    movlw 0x06
+    movwf PORTC
+    goto INICIO
+    
+    
 COMP_CON_COUN:
     movf    CONTROL,W
     xorwf   COUNTER, W
